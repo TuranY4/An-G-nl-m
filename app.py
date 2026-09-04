@@ -9,8 +9,8 @@ st.set_page_config(
     page_title="Anı Günlüğü", page_icon="📸", layout="centered"
 )
 
-# YÖNETİCİ E-POSTA ADRESİN (kayrayoruk5@gmail.com)
-ADMIN_EMAIL = "kayrayoruk5@gmail.com"  
+# YÖNETİCİ E-POSTA ADRESİN
+ADMIN_EMAIL = "turan@gmail.com"  # <-- Kendi e-postan yap kanka!
 
 # Özel Şık CSS Tasarımı
 st.markdown(
@@ -73,9 +73,12 @@ def veri_kaydet(data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-# Session State ile Oturum Kontrolü
+# F5 / Yenileme Durumunda Oturumu Koruma (URL Query Params Kullanımı)
+query_params = st.query_params
+url_email = query_params.get("user", None)
+
 if "kullanici_email" not in st.session_state:
-    st.session_state.kullanici_email = None
+    st.session_state.kullanici_email = url_email
 
 st.title("✨ 📸 Günün Anısı ✨")
 
@@ -85,9 +88,18 @@ if not st.session_state.kullanici_email:
     email = st.text_input("E-posta Adresinizi Girin:", placeholder="ornek@gmail.com")
 
     if st.button("Giriş Yap"):
-        if email and "@" in email and "." in email:
-            st.session_state.kullanici_email = email.strip().lower()
-            st.success(f"Hoş geldin, {email}!")
+        if email and "@" in email and "." in email and len(email) > 5:
+            email_clean = email.strip().lower()
+            st.session_state.kullanici_email = email_clean
+            st.query_params["user"] = email_clean
+
+            # Kullanıcıyı veri dosyasına ilk girişte kaydet
+            veriler = veri_yukle()
+            if email_clean not in veriler:
+                veriler[email_clean] = {}
+                veri_kaydet(veriler)
+
+            st.success(f"Hoş geldin, {email_clean}!")
             st.rerun()
         else:
             st.error("Lütfen geçerli bir e-posta adresi girin.")
@@ -102,6 +114,8 @@ else:
 
     if st.sidebar.button("Çıkış Yap"):
         st.session_state.kullanici_email = None
+        if "user" in st.query_params:
+            del st.query_params["user"]
         st.rerun()
 
     # Sekmeler
@@ -176,7 +190,7 @@ else:
         else:
             st.info("Henüz kaydedilmiş bir anın yok. İlk anını eklemekle başla!")
 
-    # 3. SEKME: Yönetici Paneli (Sadece senin mailinle açılır)
+    # 3. SEKME: Yönetici Paneli
     if is_admin:
         with tabs[2]:
             st.subheader("👑 Yönetici Paneli")
@@ -184,13 +198,13 @@ else:
             kayitli_kullanicilar = list(veriler.keys())
             toplam_kullanici = len(kayitli_kullanicilar)
 
-            st.metric(label="👥 Toplam Kayıtlı E-posta Sayısı", value=toplam_kullanici)
+            st.metric(label="👥 Toplam Giriş Yapan E-posta Sayısı", value=toplam_kullanici)
             st.markdown("---")
             st.write("📋 **Kayıtlı E-postalar ve Anı Sayıları:**")
 
             if kayitli_kullanicilar:
                 for idx, email_addr in enumerate(kayitli_kullanicilar, 1):
                     ani_sayisi = len(veriler[email_addr])
-                    st.write(f"**{idx}.** {email_addr} — *(Toplam {ani_sayisi} Anı)*")
+                    st.write(f"**{idx}.** `{email_addr}` — *(Toplam {ani_sayisi} Anı)*")
             else:
-                st.write("Henüz hiçbir kullanıcı anı kaydetmemiş.")
+                st.write("Henüz hiçbir kullanıcı giriş yapmamış.")
