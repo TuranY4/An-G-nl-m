@@ -10,8 +10,8 @@ st.set_page_config(
     page_title="Anı Günlüğü", page_icon="📸", layout="centered"
 )
 
-# YÖNETİCİ E-POSTA ADRESİN
-ADMIN_EMAIL = "turanyonetıcı@gmail.com"  # <-- Burayı kendi e-postan yap kanka!
+# 👑 YÖNETİCİ E-POSTA ADRESİN (Telefondan girerken yazdığın e-posta ile BİREBİR AYNI olmalı!)
+ADMIN_EMAIL = "turanyonetıcı4@gmail.com" 
 
 # Günün Motivasyon Sözleri
 MOTIVASYON_SOZLERI = [
@@ -73,6 +73,13 @@ st.markdown(
         border-radius: 10px;
         margin-bottom: 20px;
     }
+    .admin-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(168, 85, 247, 0.3);
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -95,8 +102,13 @@ if not os.path.exists(SYSTEM_FILE):
 
 
 def veri_yukle():
+    if not os.path.exists(DATA_FILE):
+        return {}
     with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        try:
+            return json.load(f)
+        except:
+            return {}
 
 
 def veri_kaydet(data):
@@ -105,8 +117,13 @@ def veri_kaydet(data):
 
 
 def sistem_yukle():
+    if not os.path.exists(SYSTEM_FILE):
+        return {"duyuru": ""}
     with open(SYSTEM_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        try:
+            return json.load(f)
+        except:
+            return {"duyuru": ""}
 
 
 def sistem_kaydet(data):
@@ -145,8 +162,9 @@ if not st.session_state.kullanici_email:
         else:
             st.error("Lütfen geçerli bir e-posta adresi girin.")
 else:
-    kullanici_id = st.session_state.kullanici_email
-    is_admin = kullanici_id == ADMIN_EMAIL.strip().lower()
+    kullanici_id = st.session_state.kullanici_email.strip().lower()
+    admin_clean = ADMIN_EMAIL.strip().lower()
+    is_admin = kullanici_id == admin_clean
 
     # Sistem Duyurusu
     sistem_data = sistem_yukle()
@@ -156,7 +174,7 @@ else:
     # Yan Menü
     st.sidebar.write(f"👤 **Giriş Yapan:** {kullanici_id}")
     if is_admin:
-        st.sidebar.markdown("👑 **Yönetici Hesabı**")
+        st.sidebar.markdown("👑 **Özel Yönetici Paneli Aktif**")
 
     if st.sidebar.button("Çıkış Yap"):
         st.session_state.kullanici_email = None
@@ -178,7 +196,7 @@ else:
         tarih_str = str(tarih)
 
         ruh_hali = st.selectbox("Bugünkü Ruh Halin:", [
-            "😊 Mutlu", "🚀 Exciting / Heyecanlı", "☕ Sakin", 
+            "😊 Mutlu", "🚀 Heyecanlı", "☕ Sakin", 
             "😴 Yorgun", "🔥 Motivasyonlu", "🥳 Eğlenceli", "❤️ Sevgi Dolu"
         ])
 
@@ -212,7 +230,7 @@ else:
             else:
                 st.warning("Lütfen hem fotoğraf yükle hem de bir not yaz.")
 
-    # 2. SEKME: Anılarım & Arama
+    # 2. SEKME: Anılarım
     with tabs[1]:
         st.subheader("Geçmiş Anıların")
         veriler = veri_yukle()
@@ -221,7 +239,6 @@ else:
         if kullanici_anilari:
             arama_kelimesi = st.text_input("🔍 Notlarda Arama Yap:", placeholder="Kelime girin...")
             
-            # Filtreleme
             filtrelenmis = {}
             for t, a in kullanici_anilari.items():
                 if arama_kelimesi.lower() in a.get("not", "").lower():
@@ -262,7 +279,7 @@ else:
         else:
             st.info("Henüz kaydedilmiş bir anın yok. İlk anını eklemekle başla!")
 
-    # 3. SEKME: Favori Anılar
+    # 3. SEKME: Favoriler
     with tabs[2]:
         st.subheader("⭐ Favori Anıların")
         veriler = veri_yukle()
@@ -302,36 +319,57 @@ else:
             for mood, count in sayac.items():
                 st.write(f"* **{mood}:** {count} defa")
 
-    # 5. SEKME: Yönetici Paneli
+    # 5. SEKME: Özel Tam Yetkili Admin Paneli
     if is_admin:
         with tabs[4]:
-            st.subheader("👑 Yönetici Paneli")
+            st.subheader("👑 Özel Yönetici Kontrol Merkezi")
             veriler = veri_yukle()
-            kayitli_kullanicilar = list(veriler.keys())
-            toplam_kullanici = len(kayitli_kullanicilar)
+            
+            toplam_kullanici = len(veriler)
             toplam_platform_ani = sum(len(v) for v in veriler.values())
 
+            # Genel Metrikler
             ac1, ac2 = st.columns(2)
-            ac1.metric("👥 Toplam Kullanıcı", toplam_kullanici)
-            ac2.metric("🖼️ Platformdaki Toplam Anı", toplam_platform_ani)
+            ac1.metric("👥 Kayıtlı E-Posta Sayısı", toplam_kullanici)
+            ac2.metric("🖼️ Yüklenen Toplam Anı", toplam_platform_ani)
 
             st.markdown("---")
+            
+            # 1. Duyuru Yönetimi
             st.subheader("📢 Sistem Duyurusu Yayınla")
             mevcut_duyuru = sistem_yukle().get("duyuru", "")
-            yeni_duyuru = st.text_input("Tüm kullanıcılara gösterilecek duyuru:", value=mevcut_duyuru)
+            yeni_duyuru = st.text_input("Tüm kullanıcılara gösterilecek duyuru metni:", value=mevcut_duyuru)
             
-            if st.button("Duyuruyu Güncelle"):
+            if st.button("Duyuruyu Kaydet & Yayınla"):
                 sistem_data = sistem_yukle()
                 sistem_data["duyuru"] = yeni_duyuru
                 sistem_kaydet(sistem_data)
-                st.success("Duyuru güncellendi!")
+                st.success("Duyuru başarıyla yayınlandı!")
                 st.rerun()
 
             st.markdown("---")
-            st.write("📋 **Kayıtlı E-postalar ve Detaylar:**")
-            if kayitli_kullanicilar:
-                for idx, email_addr in enumerate(kayitli_kullanicilar, 1):
-                    ani_sayisi = len(veriler[email_addr])
-                    st.write(f"**{idx}.** `{email_addr}` — *(Toplam {ani_sayisi} Anı)*")
+            
+            # 2. Tüm Kullanıcıları ve Fotoğrafları İnceleme Alanı
+            st.subheader("🔍 Tüm Kullanıcılar ve Fotoğraflar")
+            
+            if veriler:
+                secilen_user = st.selectbox("İncelemek istediğin e-posta adresini seç:", list(veriler.keys()))
+                
+                if secilen_user:
+                    user_anilari = veriler[secilen_user]
+                    st.write(f"👤 **Seçilen Kullanıcı:** `{secilen_user}`")
+                    st.write(f"📸 **Yüklediği Anı Sayısı:** {len(user_anilari)}")
+                    
+                    if user_anilari:
+                        st.markdown("##### 📁 Kullanıcının Yüklediği Anı ve Fotoğraflar:")
+                        for t, a in user_anilari.items():
+                            with st.expander(f"🗓️ {t} - {a.get('ruh_hali', '😊')}"):
+                                if os.path.exists(a["foto_yolu"]):
+                                    st.image(a["foto_yolu"], width=300)
+                                else:
+                                    st.caption("⚠️ Fotoğraf görseli bulunamadı veya silinmiş.")
+                                st.write(f"📝 **Not:** {a.get('not', '')}")
+                    else:
+                        st.info("Bu kullanıcı henüz hiç anı yüklememiş.")
             else:
-                st.write("Henüz kayıtlı kullanıcı yok.")
+                st.info("Sistemde henüz kayıtlı veri yok.")
