@@ -10,8 +10,8 @@ st.set_page_config(
     page_title="Anı Günlüğü", page_icon="📸", layout="centered"
 )
 
-# 👑 YÖNETİCİ E-POSTA ADRESİN (Telefondan girerken yazdığın e-posta ile BİREBİR AYNI olmalı!)
-ADMIN_EMAIL = "turanyonetıcı4@gmail.com" 
+# 👑 YÖNETİCİ E-POSTA ADRESİN (Sabitlendi!)
+ADMIN_EMAIL = "turanyonetıcı4@gmail.com"
 
 # Günün Motivasyon Sözleri
 MOTIVASYON_SOZLERI = [
@@ -73,13 +73,6 @@ st.markdown(
         border-radius: 10px;
         margin-bottom: 20px;
     }
-    .admin-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(168, 85, 247, 0.3);
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 15px;
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -104,11 +97,11 @@ if not os.path.exists(SYSTEM_FILE):
 def veri_yukle():
     if not os.path.exists(DATA_FILE):
         return {}
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        try:
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-        except:
-            return {}
+    except:
+        return {}
 
 
 def veri_kaydet(data):
@@ -119,11 +112,11 @@ def veri_kaydet(data):
 def sistem_yukle():
     if not os.path.exists(SYSTEM_FILE):
         return {"duyuru": ""}
-    with open(SYSTEM_FILE, "r", encoding="utf-8") as f:
-        try:
+    try:
+        with open(SYSTEM_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-        except:
-            return {"duyuru": ""}
+    except:
+        return {"duyuru": ""}
 
 
 def sistem_kaydet(data):
@@ -349,25 +342,30 @@ else:
 
             st.markdown("---")
             
-            # 2. Tüm Kullanıcıları ve Fotoğrafları İnceleme Alanı
-            st.subheader("🔍 Tüm Kullanıcılar ve Fotoğraflar")
+            # 2. Tüm Kullanıcılar ve Fotoğraflar
+            st.subheader("🔍 Tüm Kayıtlı E-Postalar ve Detaylar")
             
             if veriler:
-                secilen_user = st.selectbox("İncelemek istediğin e-posta adresini seç:", list(veriler.keys()))
+                st.write("📋 **Sistemdeki E-Posta Listesi:**")
+                for mail, anilar in veriler.items():
+                    st.markdown(f"* ✉️ **{mail}** — *(Yüklenen Anı: {len(anilar)})*")
+                
+                st.markdown("---")
+                secilen_user = st.selectbox("İncelemek istediğin hesabı seç:", list(veriler.keys()))
                 
                 if secilen_user:
                     user_anilari = veriler[secilen_user]
-                    st.write(f"👤 **Seçilen Kullanıcı:** `{secilen_user}`")
+                    st.write(f"👤 **Seçilen E-Posta:** `{secilen_user}`")
                     st.write(f"📸 **Yüklediği Anı Sayısı:** {len(user_anilari)}")
                     
                     if user_anilari:
-                        st.markdown("##### 📁 Kullanıcının Yüklediği Anı ve Fotoğraflar:")
+                        st.markdown("##### 📁 Yüklenen Fotoğraflar ve Notlar:")
                         for t, a in user_anilari.items():
                             with st.expander(f"🗓️ {t} - {a.get('ruh_hali', '😊')}"):
                                 if os.path.exists(a["foto_yolu"]):
                                     st.image(a["foto_yolu"], width=300)
                                 else:
-                                    st.caption("⚠️ Fotoğraf görseli bulunamadı veya silinmiş.")
+                                    st.caption("⚠️ Fotoğraf görseli sunucu sıfırlandığı için bulunamadı.")
                                 st.write(f"📝 **Not:** {a.get('not', '')}")
                     else:
                         st.info("Bu kullanıcı henüz hiç anı yüklememiş.")
